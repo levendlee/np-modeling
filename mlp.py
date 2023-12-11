@@ -19,7 +19,7 @@ class ReLU(Activation):
         return np.maximum(x, 0.0)
 
     def backward(self, dy: np.ndarray) -> np.ndarray:
-        assert dy.shape == self._x.shape
+        assert dy.shape == self._x.shape, f'{dy.shape} vs {self._x.shape}'
         return np.where(self._x >= 0.0, dy, 0.0)
 
 
@@ -30,7 +30,7 @@ class Initializer(metaclass=abc.ABCMeta):
 
 class RandomInitializer(Initializer):
     def __call__(self, shape: Sequence[int]) -> np.ndarray:
-        return np.random.rand(*shape).astype(np.float32)
+        return np.random.normal(size=shape).astype(np.float32)
 
 
 class Linear(layer.Layer):
@@ -60,6 +60,7 @@ class Linear(layer.Layer):
         self._b -= learning_rate * np.sum(dy, axis=0)
         self._w -= learning_rate * np.matmul(np.transpose(self._x), dy)
         dx = np.matmul(dy, np.transpose(self._w))
+        assert dx.shape == self._x.shape
         return dx
 
     @property
@@ -78,8 +79,9 @@ class Dense(layer.Layer):
     def __init__(self,
                  units: int,
                  activation: Optional[Activation] = None,
-                 initializer: Optional[Initializer] = None):
-        super().__init__()
+                 initializer: Optional[Initializer] = None,
+                 name: str = ''):
+        super().__init__(name)
         self._linear = Linear(units=units,
                               initializer=initializer or RandomInitializer())
         self._activation = activation or ReLU()

@@ -10,7 +10,7 @@ import mlp
 
 
 def _rand(shape) -> np.ndarray:
-    return np.random.rand(*shape).astype(np.float32)
+    return np.random.normal(size=shape).astype(np.float32)
 
 
 class MLPTest(unittest.TestCase):

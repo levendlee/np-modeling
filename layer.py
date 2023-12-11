@@ -7,7 +7,8 @@ import numpy as np
 
 
 class Layer(metaclass=abc.ABCMeta):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, name: str = '', *args, **kwargs):
+        self._name = name
         self._initialized = False
 
     def initialize(self, *args, **kwargs) -> None:
@@ -29,3 +30,7 @@ class Layer(metaclass=abc.ABCMeta):
             return self.backward(*args, **kwargs)
         else:
             return self.forward(*args, **kwargs)
+
+    @property
+    def name(self):
+        return self._name
