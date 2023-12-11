@@ -1,0 +1,3 @@
+# Loss.
+
+class Loss
