@@ -57,10 +57,12 @@ class Linear(layer.Layer):
         # w/dw: [k, n]
         # x/dx: [m, k]
         assert dy.shape == (self._x.shape[0], self._w.shape[1])
-        self._b -= learning_rate * np.sum(dy, axis=0)
-        self._w -= learning_rate * np.matmul(np.transpose(self._x), dy)
+        db = np.sum(dy, axis=0)
+        dw = np.matmul(np.transpose(self._x), dy)
         dx = np.matmul(dy, np.transpose(self._w))
         assert dx.shape == self._x.shape
+        self._b -= learning_rate * db
+        self._w -= learning_rate * dw
         return dx
 
     @property

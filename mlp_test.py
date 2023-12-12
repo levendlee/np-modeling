@@ -94,6 +94,6 @@ class MLPTest(unittest.TestCase):
         self.assertEqual(dx.shape, (batch_size, input_features))
 
         # TODO: This number looks not reliable
-        self.assert_allclose(dx, jax_dx, atol=1e-3, rtol=1e-2)
-        self.assert_allclose(w, jax_w, atol=1e-4, rtol=1e-4)
-        self.assert_allclose(b, jax_b, atol=1e-4, rtol=1e-4)
+        self.assert_allclose(dx, jax_dx, atol=1e-6, rtol=1e-6)
+        self.assert_allclose(w, jax_w, atol=1e-6, rtol=1e-6)
+        self.assert_allclose(b, jax_b, atol=1e-6, rtol=1e-6)
