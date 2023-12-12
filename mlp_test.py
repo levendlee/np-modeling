@@ -14,7 +14,7 @@ def _rand(shape) -> np.ndarray:
 
 
 class MLPTest(unittest.TestCase):
-    def assert_allclose(self, lhs, rhs, rtol=1e-6, atol=1e-6):
+    def assert_allclose(self, lhs, rhs, *, rtol=1e-6, atol=1e-6):
         return np.testing.assert_allclose(lhs, rhs, rtol=rtol, atol=atol)
 
     def test_forward_and_backward_execute(self):
@@ -93,7 +93,6 @@ class MLPTest(unittest.TestCase):
         dx = layer(dy, backprop=True, learning_rate=learning_rate)
         self.assertEqual(dx.shape, (batch_size, input_features))
 
-        # TODO: This number looks not reliable
-        self.assert_allclose(dx, jax_dx, atol=1e-6, rtol=1e-6)
-        self.assert_allclose(w, jax_w, atol=1e-6, rtol=1e-6)
-        self.assert_allclose(b, jax_b, atol=1e-6, rtol=1e-6)
+        self.assert_allclose(dx, jax_dx)
+        self.assert_allclose(w, jax_w)
+        self.assert_allclose(b, jax_b)
