@@ -23,21 +23,10 @@ class ReLU(Activation):
         return np.where(self._x >= 0.0, dy, 0.0)
 
 
-class Initializer(metaclass=abc.ABCMeta):
-    def __call__(self, shape: Sequence[int]) -> np.ndarray:
-        pass
-
-
-class RandomInitializer(Initializer):
-    def __call__(self, shape: Sequence[int]) -> np.ndarray:
-        data = np.random.normal(size=shape).astype(np.float32)
-        return np.minimum(np.maximum(data, -1.0), 1.0)
-
-class Linear(layer.Layer):
-    def __init__(self, units: int, initializer: Optional[Initializer] = None):
-        super().__init__()
+class Linear(layer.StatefulLayer):
+    def __init__(self, units: int, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._output_units = units
-        self._initializer = initializer or RandomeInitializer()
 
     def initialize(self, x: np.ndarray) -> None:
         self._input_units = x.shape[-1]
@@ -76,16 +65,15 @@ class Linear(layer.Layer):
         return self._b
 
 
-class Dense(layer.Layer):
+class Dense(layer.StatefulLayer):
     """Dense w/ ReLU activation."""
     def __init__(self,
                  units: int,
                  activation: Optional[Activation] = None,
-                 initializer: Optional[Initializer] = None,
-                 name: str = ''):
-        super().__init__(name)
-        self._linear = Linear(units=units,
-                              initializer=initializer or RandomInitializer())
+                 *args,
+                 **kwargs):
+        super().__init__(*args, **kwargs)
+        self._linear = Linear(units=units)
         self._activation = activation or ReLU()
 
     def initialize(self, x: np.ndarray) -> None:

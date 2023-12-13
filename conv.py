@@ -10,7 +10,7 @@ import layer
 import mlp
 
 
-class Conv2D(layer.Layer):
+class Conv2D(layer.StatefulLayer):
     """Conv2D w/ ReLU activation.
 
     Assumes:
@@ -23,15 +23,14 @@ class Conv2D(layer.Layer):
                  padding: str = 'SAME',
                  strides: Sequence[int] = (1, 1),
                  activation: Optional[mlp.Activation] = None,
-                 initializer: Optional[mlp.Initializer] = None,
-                 name: str = ''):
-        super().__init__(name)
+                 *args,
+                 **kwargs):
+        super().__init__(*args, **kwargs)
         assert padding == 'SAME'
         # TODO: Support dialted convolution.
         assert strides == (1, 1)
         self._output_channels = channels
         self._kernel_size = kernel_size
-        self._initializer = initializer or mlp.RandomInitializer()
         self._activation = activation or mlp.ReLU()
 
     def initialize(self, x: np.ndarray) -> None:

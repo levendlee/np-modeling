@@ -1,7 +1,7 @@
 # Layer.
 
 import abc
-from typing import Mapping, Union
+from typing import Mapping, Optional, Sequence, Union
 
 import numpy as np
 
@@ -34,3 +34,23 @@ class Layer(metaclass=abc.ABCMeta):
     @property
     def name(self):
         return self._name
+
+
+class Initializer(metaclass=abc.ABCMeta):
+    def __call__(self, shape: Sequence[int]) -> np.ndarray:
+        pass
+
+
+class RandomInitializer(Initializer):
+    def __call__(self, shape: Sequence[int]) -> np.ndarray:
+        data = np.random.normal(size=shape).astype(np.float32)
+        return np.minimum(np.maximum(data, -1.0), 1.0)
+
+
+class StatefulLayer(Layer):
+    def __init__(self,
+                 initializer: Optional[Initializer] = None,
+                 *args,
+                 **kwargs):
+        super().__init__(*args, **kwargs)
+        self._initializer = initializer or RandomInitializer()
