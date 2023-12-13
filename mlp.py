@@ -30,8 +30,8 @@ class Initializer(metaclass=abc.ABCMeta):
 
 class RandomInitializer(Initializer):
     def __call__(self, shape: Sequence[int]) -> np.ndarray:
-        return np.random.normal(size=shape).astype(np.float32)
-
+        data = np.random.normal(size=shape).astype(np.float32)
+        return np.minimum(np.maximum(data, -1.0), 1.0)
 
 class Linear(layer.Layer):
     def __init__(self, units: int, initializer: Optional[Initializer] = None):
