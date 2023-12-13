@@ -95,7 +95,7 @@ class ConvTest(unittest.TestCase):
             return _mse_loss(y, targets)
 
         grad_fn = jax.jit(jax.grad(_jax_loss, argnums=(0, 1, 2)))
-        print(grad_fn.lower(x, filters, bias, targets).as_text())
+        # print(grad_fn.lower(x, filters, bias, targets).as_text())
         grads = grad_fn(x, filters, bias, targets)
 
         jax_dx, jax_dfilters, jax_dbias = grads
@@ -107,7 +107,6 @@ class ConvTest(unittest.TestCase):
         dx = layer(dy, backprop=True, learning_rate=learning_rate)
         self.assertEqual(dx.shape, (batch_size, h, w, input_features))
 
-        # TODO: Fix numerics bugs in backward path.
-        # self.assert_allclose(dx, jax_dx)
-        # self.assert_allclose(filters, jax_filters)
-        # self.assert_allclose(bias, jax_b)
+        self.assert_allclose(dx, jax_dx)
+        self.assert_allclose(filters, jax_filters)
+        self.assert_allclose(bias, jax_bias)

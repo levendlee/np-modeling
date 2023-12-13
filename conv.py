@@ -55,8 +55,8 @@ class Conv2D(layer.Layer):
         assert dy.shape[:3] == self._x.shape[:3]
         assert dy.shape[3] == self._output_channels
         dy = self._activation.backward(dy)
-        db = learning_rate * np.sum(dy, axis=(0, 1, 2))
-        dw = learning_rate * _conv2d_grad_w(dy, self._x, self._kernel_size)
+        db = np.sum(dy, axis=(0, 1, 2))
+        dw = _conv2d_grad_w(dy, self._x, self._kernel_size)
         dx = _conv2d_grad_x(dy, self._w)
         assert dx.shape == self._x.shape
         self._w -= learning_rate * dw
@@ -113,46 +113,46 @@ def _conv2d(x: np.ndarray, filters: np.ndarray) -> np.ndarray:
 def _conv2d_transpose(y: np.ndarray, filters: np.ndarray) -> np.ndarray:
     """Conv2D tranpose.
     
-  Assumes:
-    - Padding as 'SAME'.
-    - Strides as (1, 1).
+    Assumes:
+      - Padding as 'SAME'.
+      - Strides as (1, 1).
 
-  Args:
-    y: [N, H, W, C]
-    filters: [H, W, I, O]
+    Args:
+      y: [N, H, W, C]
+      filters: [H, W, I, O]
 
-  Returns
-    x: [N, H, W, C]
-  """
+    Returns
+      x: [N, H, W, C]
+    """
 
     n, h, w, c1 = y.shape
     assert filters.shape[0] == filters.shape[1]
     assert filters.shape[3] == c1
     k, _, c0, _ = filters.shape
 
-    return _conv2d(y, np.transpose(filters, [0, 1, 3, 2]))
+    return _conv2d(y, np.transpose(filters[::-1, ::-1, :, :], [0, 1, 3, 2]))
 
 
 def _conv2d_grad_x(dy: np.ndarray, filters: np.ndarray) -> np.ndarray:
     """Gradient of input in Conv2D backprop.
 
-  Note: Following uses lower case to represent indicies, instead of upper case
-  to represent dimensions.
+    Note: Following uses lower case to represent indicies, upper case to
+    represent dimensions.
 
-  In forward pass, element at x ([n, h, w, c0]) is going to accumulated
-  at C1 * K * K elements in y. So the gradient is a sum of these C1 * K * K
-  elements in dy multiplied by filter, in 
-  ( [n, h + p - k + 1, w + p - k + 1, :],
-    ...,
-    [n, h + p, w + p, :] ).
+    In forward pass, element at x ([n, h, w, c0]) is going to accumulated
+    at C1 * K * K elements in y. So the gradient is a sum of these C1 * K * K
+    elements in dy multiplied by filter, in 
+    ( [n, h + p - k + 1, w + p - k + 1, :],
+      ...,
+      [n, h + p, w + p, :] ).
 
-  Bear in mind, for k = 2 * p + 1, so it becomes:
-  ( [n, h - p, w - p, :],
-    ...,
-    [n, h + p, w + p, :]).
+    Bear in mind, for k = 2 * p + 1, so it becomes:
+    ( [n, h - p, w - p, :],
+      ...,
+      [n, h + p, w + p, :]).
 
-  It is simply another conv2d, but transposed.
-  """
+    It is simply transposed conv2d, as the filter mapping are flipped.
+    """
     return _conv2d_transpose(dy, filters)
 
 
@@ -160,17 +160,21 @@ def _conv2d_grad_w(dy: np.ndarray, x: np.ndarray,
                    filter_size: int) -> np.ndarray:
     """Gradient of filters in Conv2D backprop.
   
-  In forward pass, element as w ([i, j, c0, c1]) is going to accumulated
-  at N * H * W elements in y [:, :, :, c1], meanwhile, it going to
-  be muliplied by N * H * W elements in x [:, :, :, c0]. So,
-    dw = x^T @ dy
-  For each filter index. The x and y should have a shift in spatial dimensions,
-  for example, x[n, h + i - p, w + j - p, :] maps to y[n, h, w, :].
-  
-  Alternatively, we can also think it as totally K*K of 1x1 convolutions
-  accumulated together, which makes the first second of above description
-  easier to understand.
-  """
+    In forward pass, element as w ([i, j, c0, c1]) is going to accumulated
+    at N * H * W elements in y [:, :, :, c1], meanwhile, it going to
+    be muliplied by N * H * W elements in x [:, :, :, c0]. So,
+      dw = x^T @ dy
+    For each filter index. The x and y should have a shift in spatial
+    dimensions, for example, x[n, h + i - p, w + j - p, :] maps to
+    y[n, h, w, :].
+    
+    Alternatively, we can also think it as totally K * K of 1x1 convolutions
+    accumulated together, which makes the first second of above description
+    easier to understand.
+
+    Essentially, it should be padded X convoluted with y (as filters) without
+    additional padding.
+    """
 
     assert dy.shape[:3] == x.shape[:3]
 
