@@ -23,15 +23,16 @@ class Softmax(mlp.Activation):
         rank = len(self._y.shape)
         batch = self._y.shape[:-1]
         n = self._y.shape[-1]
-        
+
         # https://towardsdatascience.com/derivative-of-the-softmax-function-and-the-categorical-cross-entropy-loss-ffceefc081d1
         # Jacobian
         # dy_i/dx_j = y_i(1{i=j} - y_j)
-        # Broadcasting batch dimensions and last 2 dimensions as Jacobian. 
+        # Broadcasting batch dimensions and last 2 dimensions as Jacobian.
         j = np.expand_dims(np.eye(n), axis=tuple(range(rank - 1)))
-        j = j - np.expand_dims(self._y, axis=rank-1)
+        j = j - np.expand_dims(self._y, axis=rank - 1)
         j = j * np.expand_dims(self._y, axis=rank)
         return np.einsum('...a,...ba->...b', dy, j)
+
 
 class MultiHeadAttention(layer.StatefulLayer):
     def __init__(self, num_heads: int, *args, **kwargs):
