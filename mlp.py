@@ -32,7 +32,6 @@ class Linear(layer.StatefulLayer):
         self._input_units = x.shape[-1]
         self._w = self._initializer([self._input_units, self._output_units])
         self._b = self._initializer([self._output_units])
-        self._initialized = True
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         self._x = x
@@ -79,7 +78,6 @@ class Dense(layer.StatefulLayer):
     def initialize(self, x: np.ndarray) -> None:
         self._linear.initialize(x)
         self._activation.initialize()
-        self._initialized = True
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         y = self._linear.forward(x)

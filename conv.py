@@ -42,7 +42,6 @@ class Conv2D(layer.StatefulLayer):
         ])
         self._b = self._initializer([self._output_channels])
         self._activation.initialize()
-        self._initialized = True
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         self._x = x

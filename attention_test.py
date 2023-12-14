@@ -31,6 +31,8 @@ class AttentionTest(unittest.TestCase):
         return np.testing.assert_allclose(lhs, rhs, rtol=rtol, atol=atol)
 
     def test_forward(self):
+        np.random.seed(0)
+        
         batch = 16
         seq_len_q = 32
         seq_len_kv = 128
@@ -73,15 +75,15 @@ class AttentionTest(unittest.TestCase):
         self.assertEqual(layer._bk.shape, bk.shape)
         self.assertEqual(layer._bv.shape, bv.shape)
         self.assertEqual(layer._bo.shape, bo.shape)
-
-        self._wq = wq
-        self._wk = wk
-        self._wv = wv
-        self._wo = wo
-        self._bq = bq
-        self._bk = bk
-        self._bv = bv
-        self._bo = bo
+        
+        layer._wq = wq
+        layer._wk = wk
+        layer._wv = wv
+        layer._wo = wo
+        layer._bq = bq
+        layer._bk = bk
+        layer._bv = bv
+        layer._bo = bo
 
         output = layer(query)
         flax_output = flax_attention.apply(variables, query)

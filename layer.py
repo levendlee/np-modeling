@@ -12,7 +12,7 @@ class Layer(metaclass=abc.ABCMeta):
         self._initialized = False
 
     def initialize(self, *args, **kwargs) -> None:
-        self._initialized = True
+        pass
 
     @abc.abstractmethod
     def forward(self, *args, **kwargs) -> np.ndarray:
@@ -25,6 +25,7 @@ class Layer(metaclass=abc.ABCMeta):
     def __call__(self, *args, backprop: bool = False, **kwargs) -> np.ndarray:
         if not self._initialized:
             self.initialize(*args, **kwargs)
+            self._initialized = True
 
         if backprop:
             return self.backward(*args, **kwargs)
