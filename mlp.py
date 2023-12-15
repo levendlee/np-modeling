@@ -77,7 +77,9 @@ class Dense(layer.StatefulLayer):
 
     def initialize(self, x: np.ndarray) -> None:
         self._linear.initialize(x)
+        self._linear._initialized = True
         self._activation.initialize()
+        self._activation._initialized = True
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         y = self._linear.forward(x)
