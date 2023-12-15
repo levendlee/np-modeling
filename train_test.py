@@ -9,10 +9,7 @@ import numpy as np
 import conv
 import mlp
 import train
-
-
-def _rand(shape) -> np.ndarray:
-    return np.random.normal(size=shape).astype(np.float32)
+import utils
 
 
 class TrainTest(unittest.TestCase):

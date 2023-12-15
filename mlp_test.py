@@ -7,10 +7,7 @@ from jax import numpy as jnp
 import numpy as np
 
 import mlp
-
-
-def _rand(shape) -> np.ndarray:
-    return np.random.normal(size=shape).astype(np.float32)
+import utils
 
 
 class MLPTest(unittest.TestCase):
@@ -23,8 +20,8 @@ class MLPTest(unittest.TestCase):
         output_features = 16
 
         layer = mlp.Dense(units=output_features)
-        x = _rand([batch_size, input_features])
-        targets = _rand([batch_size, output_features])
+        x = utils.rand([batch_size, input_features])
+        targets = utils.rand([batch_size, output_features])
 
         # 1.1 Forward
         y = layer(x)
@@ -32,7 +29,7 @@ class MLPTest(unittest.TestCase):
 
         # 3.1 Backward
         learning_rate = 0.01
-        dy = _rand([batch_size, output_features])
+        dy = utils.rand([batch_size, output_features])
         dx = layer(dy, backprop=True, learning_rate=learning_rate)
         self.assertEqual(dx.shape, (batch_size, input_features))
 
@@ -42,8 +39,8 @@ class MLPTest(unittest.TestCase):
         output_features = 16
 
         layer = mlp.Dense(units=output_features)
-        x = _rand([batch_size, input_features])
-        targets = _rand([batch_size, output_features])
+        x = utils.rand([batch_size, input_features])
+        targets = utils.rand([batch_size, output_features])
 
         # 1.1 Forward
         # 1.2 To test

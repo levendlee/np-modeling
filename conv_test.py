@@ -8,10 +8,7 @@ import numpy as np
 
 import conv
 import mlp
-
-
-def _rand(shape) -> np.ndarray:
-    return np.random.normal(size=shape).astype(np.float32)
+import utils
 
 
 class ConvTest(unittest.TestCase):
@@ -27,7 +24,7 @@ class ConvTest(unittest.TestCase):
         output_features = 16
 
         layer = conv.Conv2D(channels=output_features, kernel_size=kernel_size)
-        x = _rand([batch_size, h, w, input_features])
+        x = utils.rand([batch_size, h, w, input_features])
 
         # 1.1 Forward
         y = layer(x)
@@ -35,7 +32,7 @@ class ConvTest(unittest.TestCase):
 
         # 3.1 Backward
         learning_rate = 0.01
-        dy = _rand([batch_size, h, w, output_features])
+        dy = utils.rand([batch_size, h, w, output_features])
         dx = layer(dy, backprop=True, learning_rate=learning_rate)
         self.assertEqual(dx.shape, (batch_size, h, w, input_features))
 
@@ -50,8 +47,8 @@ class ConvTest(unittest.TestCase):
         output_features = 16
 
         layer = conv.Conv2D(channels=output_features, kernel_size=kernel_size)
-        x = _rand([batch_size, h, w, input_features])
-        targets = _rand([batch_size, h, w, output_features])
+        x = utils.rand([batch_size, h, w, input_features])
+        targets = utils.rand([batch_size, h, w, output_features])
 
         # 1.1 Forward
         # 1.2 To test
