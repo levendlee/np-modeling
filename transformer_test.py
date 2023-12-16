@@ -101,6 +101,15 @@ class _TransformerDecoder(nn.Module):
         return out
 
 
+def _bind_layer_norm(ln: transformer.LayerNormalization, bound_flax_ln):
+    assert hasattr(ln, '_gamma')
+    ln._gamma = bound_flax_ln.get_variable('params', 'scale')
+    assert hasattr(ln, '_beta')
+    ln._beta = bound_flax_ln.get_variable('params', 'bias')
+    assert hasattr(ln, '_epsilon')
+    ln._epsilon = bound_flax_ln.epsilon
+
+
 def _bind_encoder(encoder: transformer.TransformerEncoder, bound_flax_encoder):
     utils.bind_attention_variables_to_layer(
         encoder._self_attention,
@@ -119,18 +128,8 @@ def _bind_encoder(encoder: transformer.TransformerEncoder, bound_flax_encoder):
     assert hasattr(encoder._dense2, '_b')
     encoder._dense2._b = bound_flax_encoder.dense2.get_variable(
         'params', 'bias')
-    assert hasattr(encoder._norm1, '_gamma')
-    encoder._norm1._gamma = bound_flax_encoder.norm1.get_variable(
-        'params', 'scale')
-    assert hasattr(encoder._norm1, '_beta')
-    encoder._norm1._beta = bound_flax_encoder.norm1.get_variable(
-        'params', 'bias')
-    assert hasattr(encoder._norm2, '_gamma')
-    encoder._norm2._gamma = bound_flax_encoder.norm2.get_variable(
-        'params', 'scale')
-    assert hasattr(encoder._norm2, '_beta')
-    encoder._norm2._beta = bound_flax_encoder.norm2.get_variable(
-        'params', 'bias')
+    _bind_layer_norm(encoder._norm1, bound_flax_encoder.norm1)
+    _bind_layer_norm(encoder._norm2, bound_flax_encoder.norm2)
 
 
 def _bind_decoder(decoder: transformer.TransformerDecoder, bound_flax_decoder):
@@ -141,16 +140,71 @@ def _bind_decoder(decoder: transformer.TransformerDecoder, bound_flax_decoder):
         *utils.read_attention_variables_from_flax(
             bound_flax_decoder.cross_attention.variables))
 
-    assert hasattr(decoder._norm3, '_gamma')
-    decoder._norm3._gamma = bound_flax_decoder.norm3.get_variable(
-        'params', 'scale')
-    assert hasattr(decoder._norm3, '_beta')
-    decoder._norm3._beta = bound_flax_decoder.norm3.get_variable(
-        'params', 'bias')
+    _bind_layer_norm(decoder._norm3, bound_flax_decoder.norm3)
+
+
+class LayerNormTest(np.testing.TestCase):
+    def assert_allclose(self, lhs, rhs, *, rtol=1e-6, atol=1e-6):
+        return np.testing.assert_allclose(lhs, rhs, rtol=rtol, atol=atol)
+
+    def test_forward_and_backward(self):
+        np.random.seed(0)
+        rng = jax.random.PRNGKey(0)
+
+        batch = 32
+        features = 128
+
+        x = utils.rand([batch, features])
+        targets = utils.rand([batch, features])
+
+        # Flax baseline
+        flax_norm = nn.LayerNorm()
+        variables = flax_norm.init(rng, x)
+        bound_flax_norm = flax_norm.bind(variables)
+
+        norm = transformer.LayerNormalization()
+        norm(x)
+        _bind_layer_norm(norm, bound_flax_norm)
+
+        flax_z = bound_flax_norm(x)
+        z = norm(x)
+        self.assert_allclose(z, flax_z)
+
+        @jax.jit
+        def _jax_forward(variables, x, targets):
+            z = flax_norm.apply(variables, x)
+            return utils.mse_loss(z, targets)
+
+        learning_rate = 0.001
+        flax_grad_fn = jax.jit(jax.grad(_jax_forward, argnums=(0, 1)))
+        # print(flax_grad_fn.lower(variables, x, targets).as_text())
+
+        flax_grad = flax_grad_fn(variables, x, targets)
+        dl_dz = jax.grad(utils.mse_loss)(z, targets)
+        grad = norm(dl_dz, backprop=True, learning_rate=learning_rate)
+
+        self.assert_allclose(
+            norm._gamma, variables['params']['scale'] -
+            learning_rate * flax_grad[0]['params']['scale'])
+        self.assert_allclose(
+            norm._beta, variables['params']['bias'] -
+            learning_rate * flax_grad[0]['params']['bias'])
+
+        mean_grad = jax.grad(
+            jax.jit(lambda x: jnp.sum(jnp.mean(x, axis=-1, keepdims=True))))(x)
+        var_grad = jax.grad(
+            jax.jit(lambda x: jnp.sum(jnp.var(x, axis=-1, keepdims=True))))(x)
+
+        self.assert_allclose(mean_grad, 1.0 / features)
+        self.assert_allclose(
+            var_grad,
+            2.0 * (x - np.mean(x, axis=-1, keepdims=True)) / features)
+
+        self.assert_allclose(grad, flax_grad[1])
 
 
 class TransformerEncoderTest(np.testing.TestCase):
-    def assert_allclose(self, lhs, rhs, *, rtol=1e-3, atol=1e-3):
+    def assert_allclose(self, lhs, rhs, *, rtol=1e-5, atol=1e-5):
         return np.testing.assert_allclose(lhs, rhs, rtol=rtol, atol=atol)
 
     @parameterized.expand([['norm_first', True], ['norm_last', False]])
@@ -193,13 +247,11 @@ class TransformerEncoderTest(np.testing.TestCase):
         _bind_encoder(encoder, bound_flax_encoder)
 
         output = encoder(qkv)
-        self.assert_allclose(output,
-                             flax_output,
-                             atol=4e-3 if norm_first else 1e-3)
+        self.assert_allclose(output, flax_output)
 
 
 class TransformerDecoderTest(np.testing.TestCase):
-    def assert_allclose(self, lhs, rhs, *, rtol=1e-3, atol=1e-3):
+    def assert_allclose(self, lhs, rhs, *, rtol=1e-5, atol=1e-5):
         return np.testing.assert_allclose(lhs, rhs, rtol=rtol, atol=atol)
 
     @parameterized.expand([['norm_first', True], ['norm_last', False]])
@@ -243,6 +295,4 @@ class TransformerDecoderTest(np.testing.TestCase):
         _bind_decoder(decoder, bound_flax_decoder)
 
         output = decoder(q, kv)
-        self.assert_allclose(output,
-                             flax_output,
-                             atol=4e-3 if norm_first else 1e-3)
+        self.assert_allclose(output, flax_output)
