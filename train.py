@@ -7,6 +7,7 @@ import numpy as np
 
 import layer
 import loss
+import optimizer
 
 
 class Trainer:
@@ -16,11 +17,8 @@ class Trainer:
         self._layers = layers
         self._loss = loss_ or loss.MSELoss()
 
-    def train(self,
-              inputs: np.ndarray,
-              targets: np.ndarray,
-              steps: int,
-              learning_rate: float = 0.01) -> None:
+    def train(self, inputs: np.ndarray, targets: np.ndarray, steps: int,
+              optimizer_: optimizer.Optimizer) -> None:
 
         for i in range(steps):
             print('Step: ', i)
@@ -37,7 +35,7 @@ class Trainer:
             dy = self._loss(backprop=True)
             for layer_ in reversed(self._layers):
                 logging.info('Running Layer ', layer_.name)
-                dy = layer_(dy, backprop=True, learning_rate=learning_rate)
+                dy = layer_(dy, backprop=True, optimizer_=optimizer_)
                 logging.info(dy.shape)
 
     def eval(self, inputs: np.ndarray, targets: np.ndarray) -> None:

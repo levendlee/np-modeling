@@ -1,6 +1,7 @@
 # Trainer Test
 
 import unittest
+from parameterized import parameterized
 
 import jax
 from jax import numpy as jnp
@@ -8,12 +9,18 @@ import numpy as np
 
 import conv
 import mlp
+import optimizer
 import train
 import utils
 
 
 class TrainTest(unittest.TestCase):
-    def test_train_mlp(self):
+    @parameterized.expand([['None'],
+                           ['Adam']])
+    def test_train_mlp(self, optimizer_name: str):
+        optimizer_cls = (optimizer.AdamOptimizer if optimizer_name == 'Adam'
+                         else optimizer.DefaultOptimizer)
+
         np.random.seed(0)
 
         batch_size = 128
@@ -33,8 +40,11 @@ class TrainTest(unittest.TestCase):
                                           features[-1]]).astype(np.float32)
 
         trainer = train.Trainer(layers)
-        print('Training MLP:')
-        trainer.train(inputs=x, targets=targets, steps=10, learning_rate=1e-4)
+        print(f'\nTraining MLP with Optimizer {optimizer_name}:')
+        trainer.train(inputs=x,
+                      targets=targets,
+                      steps=10,
+                      optimizer_=optimizer_cls(1e-4))
         print('Eval:')
         trainer.eval(inputs=x, targets=targets)
         # Additional eval run won't change loss
@@ -65,8 +75,11 @@ class TrainTest(unittest.TestCase):
                             channels[-1]]).astype(np.float32)
 
         trainer = train.Trainer(layers)
-        print('Training Conv:')
-        trainer.train(inputs=x, targets=targets, steps=10, learning_rate=1e-6)
+        print('\nTraining Conv:')
+        trainer.train(inputs=x,
+                      targets=targets,
+                      steps=10,
+                      optimizer_=optimizer.DefaultOptimizer(1e-6))
         print('Eval:')
         trainer.eval(inputs=x, targets=targets)
         # Additional eval run won't change loss
