@@ -7,6 +7,7 @@ from typing import Callable, Optional, Sequence, Type
 import numpy as np
 
 import layer
+import optimizer
 
 
 class Activation(layer.Layer):
@@ -39,7 +40,8 @@ class Linear(layer.StatefulLayer):
         y += self._b
         return y
 
-    def backward(self, dy: np.ndarray, learning_rate: float) -> np.ndarray:
+    def backward(self, dy: np.ndarray,
+                 optimizer_: optimizer.Optimizer) -> np.ndarray:
         # dy: [m, n]
         # b/db: [n]
         # w/dw: [k, n]
@@ -49,8 +51,8 @@ class Linear(layer.StatefulLayer):
         dw = np.matmul(np.transpose(self._x), dy)
         dx = np.matmul(dy, np.transpose(self._w))
         assert dx.shape == self._x.shape
-        self._b -= learning_rate * db
-        self._w -= learning_rate * dw
+        optimizer_.update(self, '_w', dw)
+        optimizer_.update(self, '_b', db)
         return dx
 
     @property
@@ -85,9 +87,10 @@ class Dense(layer.StatefulLayer):
         y = self._linear.forward(x)
         return self._activation.forward(y)
 
-    def backward(self, dy: np.ndarray, learning_rate: float) -> np.ndarray:
+    def backward(self, dy: np.ndarray,
+                 optimizer_: optimizer.Optimizer) -> np.ndarray:
         dy = self._activation.backward(dy)
-        return self._linear.backward(dy, learning_rate)
+        return self._linear.backward(dy, optimizer_)
 
     @property
     def linear(self) -> Linear:

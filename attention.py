@@ -6,6 +6,7 @@ import numpy as np
 
 import layer
 import mlp
+import optimizer
 
 
 class Softmax(mlp.Activation):
@@ -19,7 +20,7 @@ class Softmax(mlp.Activation):
 
         return self._y
 
-    def backward(self, dy: np.ndarray) -> np.ndarray:
+    def backward(self, dy: np.ndarray, *args, **kwargs) -> np.ndarray:
         rank = len(self._y.shape)
         batch = self._y.shape[:-1]
         n = self._y.shape[-1]
@@ -146,8 +147,8 @@ class MultiHeadAttention(layer.StatefulLayer):
         return o
 
     def backward(
-            self, dy: np.ndarray,
-            learning_rate: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        self, dy: np.ndarray, optimizer_: optimizer.Optimizer
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 
         batch = dy.shape[0]
 
@@ -213,13 +214,13 @@ class MultiHeadAttention(layer.StatefulLayer):
         dbk = np.sum(dk, axis=(0, 1))
         dbv = np.sum(dv, axis=(0, 1))
 
-        self._wq -= learning_rate * dwq
-        self._bq -= learning_rate * dbq
-        self._wk -= learning_rate * dwk
-        self._bk -= learning_rate * dbk
-        self._wv -= learning_rate * dwv
-        self._bv -= learning_rate * dbv
-        self._wo -= learning_rate * dwo
-        self._bo -= learning_rate * dbo
+        optimizer_.update(self, '_wq', dwq)
+        optimizer_.update(self, '_wk', dwk)
+        optimizer_.update(self, '_wv', dwv)
+        optimizer_.update(self, '_wo', dwo)
+        optimizer_.update(self, '_bq', dbq)
+        optimizer_.update(self, '_bk', dbk)
+        optimizer_.update(self, '_bv', dbv)
+        optimizer_.update(self, '_bo', dbo)
 
         return dquery, dkey, dvalue

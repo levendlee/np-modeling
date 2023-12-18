@@ -8,6 +8,7 @@ import numpy as np
 
 import layer
 import mlp
+import optimizer
 
 
 class Conv2D(layer.StatefulLayer):
@@ -49,7 +50,8 @@ class Conv2D(layer.StatefulLayer):
         y += self._b
         return self._activation.forward(y)
 
-    def backward(self, dy: np.ndarray, learning_rate: float) -> np.ndarray:
+    def backward(self, dy: np.ndarray,
+                 optimizer_: optimizer.Optimizer) -> np.ndarray:
         assert dy.shape[:3] == self._x.shape[:3]
         assert dy.shape[3] == self._output_channels
         dy = self._activation.backward(dy)
@@ -57,8 +59,8 @@ class Conv2D(layer.StatefulLayer):
         dw = _conv2d_grad_w(dy, self._x, self._kernel_size)
         dx = _conv2d_grad_x(dy, self._w)
         assert dx.shape == self._x.shape
-        self._w -= learning_rate * dw
-        self._b -= learning_rate * db
+        optimizer_.update(self, '_w', dw)
+        optimizer_.update(self, '_b', db)
         return dx
 
     @property

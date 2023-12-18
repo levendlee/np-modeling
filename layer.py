@@ -4,6 +4,7 @@ import abc
 from typing import Mapping, Optional, Sequence, Union
 
 import numpy as np
+import optimizer
 
 
 class Layer(metaclass=abc.ABCMeta):
@@ -19,16 +20,26 @@ class Layer(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def backward(self, *args, **kwargs) -> np.ndarray:
+    def backward(self, *args, optimizer_, **kwargs) -> np.ndarray:
         pass
 
-    def __call__(self, *args, backprop: bool = False, **kwargs) -> np.ndarray:
+    def __call__(self,
+                 *args,
+                 backprop: bool = False,
+                 learning_rate: Optional[float] = None,
+                 optimizer_: Optional[optimizer.Optimizer] = None,
+                 **kwargs) -> np.ndarray:
         if not self._initialized:
             self.initialize(*args, **kwargs)
             self._initialized = True
 
         if backprop:
-            return self.backward(*args, **kwargs)
+            if learning_rate is not None and optimizer_ is not None:
+                raise ValueError(
+                    'Optimizer and learning rate cannot both be specified!')
+            if learning_rate is not None:
+                optimizer_ = optimizer.DefaultOptimizer(learning_rate)
+            return self.backward(*args, optimizer_, **kwargs)
         else:
             return self.forward(*args, **kwargs)
 

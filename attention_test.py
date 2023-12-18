@@ -36,9 +36,9 @@ class SotmaxTest(NNTestCase):
         flax_dx = flax_grad(x, targets)
 
         softmax = attention.Softmax()
-        y = softmax.forward(x)
+        y = softmax(x)
         dy = jax.grad(utils.mse_loss)(y, targets)
-        dx = softmax.backward(dy)
+        dx = softmax(dy, backprop=True)
 
         self.assert_allclose(flax_dx, dx, rtol=1e-5, atol=1e-5)
 
@@ -104,7 +104,9 @@ class AttentionTest(NNTestCase):
 
         # Makes a deepcopy as the backward path is going to update weights.
         layer = copy.deepcopy(layer)
-        dquery, dkey, dvalue = layer.backward(dy, learning_rate)
+        dquery, dkey, dvalue = layer(dy,
+                                     backprop=True,
+                                     learning_rate=learning_rate)
 
         self.assert_allclose(flax_dquery, dquery + dkey + dvalue)
         self.assert_allclose(layer._wo, -learning_rate * flax_dwo + wo)

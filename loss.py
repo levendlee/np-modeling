@@ -26,6 +26,6 @@ class MSELoss(Loss):
         diff = y - targets
         return np.sum(diff**2) / y.size
 
-    def backward(self) -> np.ndarray:
+    def backward(self, *args, **kwargs) -> np.ndarray:
         diff = self._y - self._targets
         return 2 * diff / self._y.size

@@ -7,6 +7,7 @@ import numpy as np
 import attention
 import layer
 import mlp
+import optimizer
 
 
 class LayerNormalization(layer.StatefulLayer):
@@ -26,7 +27,8 @@ class LayerNormalization(layer.StatefulLayer):
         self._y = (x - self._mean) / np.sqrt(self._var + self._epsilon)
         return self._gamma * self._y + self._beta
 
-    def backward(self, dl_dz: np.ndarray, learning_rate: float) -> np.ndarray:
+    def backward(self, dl_dz: np.ndarray,
+                 optimizer_: optimizer.Optimizer) -> np.ndarray:
         rank = len(self._x.shape)
         batch_dims = tuple(range(rank - 1))
 
@@ -48,8 +50,8 @@ class LayerNormalization(layer.StatefulLayer):
                  np.expand_dims(dvar_dx, rank) * np.expand_dims(f, rank - 1))
         dl_dx = np.einsum('...a,...ab->...b', dl_dy, dy_dx)
 
-        self._gamma -= learning_rate * dl_dgamma
-        self._beta -= learning_rate * dl_dbeta
+        optimizer_.update(self, '_gamma', dl_dgamma)
+        optimizer_.update(self, '_beta', dl_dbeta)
         return dl_dx
 
 
@@ -96,30 +98,30 @@ class TransformerEncoder(layer.Layer):
         out = np.reshape(out, [batch, seq_len_q, features])
         return out
 
-    def backward(self, dy: np.ndarray, learning_rate: float) -> np.ndarray:
+    def backward(self, dy: np.ndarray, optimizer_: float) -> np.ndarray:
         # Uses dy to represent dl/dy and so on.
 
         batch, seq_len_q, features = dy.shape
 
         dy = np.reshape(dy, [-1, features])
         if not self._norm_first:
-            dy = self._norm2.backward(dy, learning_rate)
+            dy = self._norm2.backward(dy, optimizer_)
         dskip = dy
-        dy = self._dense2.backward(dy, learning_rate)
-        dy = self._dense1.backward(dy, learning_rate)
+        dy = self._dense2.backward(dy, optimizer_)
+        dy = self._dense1.backward(dy, optimizer_)
         if self._norm_first:
-            dy = self._norm2.backward(dy, learning_rate)
+            dy = self._norm2.backward(dy, optimizer_)
 
         dy += dskip
         dy = np.reshape(dy, [batch, seq_len_q, features])
 
         if not self._norm_first:
-            dy = self._norm1.backward(dy, learning_rate)
+            dy = self._norm1.backward(dy, optimizer_)
         dskip = dy
-        dy = self._self_attention.backward(dy, learning_rate)
+        dy = self._self_attention.backward(dy, optimizer_)
         dy = np.sum(dy, axis=0)
         if self._norm_first:
-            dy = self._norm1.backward(dy, learning_rate)
+            dy = self._norm1.backward(dy, optimizer_)
 
         dy += dskip
 
@@ -179,38 +181,38 @@ class TransformerDecoder(layer.Layer):
         out = np.reshape(out, [batch, seq_len_q, features])
         return out
 
-    def backward(self, dy: np.ndarray, learning_rate: float) -> np.ndarray:
+    def backward(self, dy: np.ndarray, optimizer_: float) -> np.ndarray:
         batch, seq_len_q, features = dy.shape
 
         dy = np.reshape(dy, [-1, features])
         if not self._norm_first:
-            dy = self._norm3.backward(dy, learning_rate)
+            dy = self._norm3.backward(dy, optimizer_)
         dskip = dy
-        dy = self._dense2.backward(dy, learning_rate)
-        dy = self._dense1.backward(dy, learning_rate)
+        dy = self._dense2.backward(dy, optimizer_)
+        dy = self._dense1.backward(dy, optimizer_)
         if self._norm_first:
-            dy = self._norm3.backward(dy, learning_rate)
+            dy = self._norm3.backward(dy, optimizer_)
 
         dy += dskip
         dy = np.reshape(dy, [batch, seq_len_q, features])
 
         if not self._norm_first:
-            dy = self._norm2.backward(dy, learning_rate)
+            dy = self._norm2.backward(dy, optimizer_)
         dskip = dy
-        dy = self._cross_attention.backward(dy, learning_rate)
+        dy = self._cross_attention.backward(dy, optimizer_)
         dkv = np.sum(dy[1:3], axis=0)
         dy = dy[0]
         if self._norm_first:
-            dy = self._norm2.backward(dy, learning_rate)
+            dy = self._norm2.backward(dy, optimizer_)
 
         dy += dskip
         if not self._norm_first:
-            dy = self._norm1.backward(dy, learning_rate)
+            dy = self._norm1.backward(dy, optimizer_)
         dskip = dy
-        dy = self._self_attention.backward(dy, learning_rate)
+        dy = self._self_attention.backward(dy, optimizer_)
         dy = np.sum(dy, axis=0)
         if self._norm_first:
-            dy = self._norm1.backward(dy, learning_rate)
+            dy = self._norm1.backward(dy, optimizer_)
 
         dy += dskip
 
