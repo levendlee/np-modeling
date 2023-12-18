@@ -40,10 +40,12 @@ class LayerNormalization(layer.StatefulLayer):
 
         f = self._x - self._mean
         g = self._var + self._epsilon
-        f_dg = f * (-0.5 * g**-1.5 * dvar_dx)
-        df_g = (np.expand_dims((np.eye(self._col) - dmean_dx), batch_dims) *
-                np.expand_dims(g**-0.5, rank))
-        dy_dx = np.expand_dims(f_dg, rank) + df_g
+        # dy/dx = (\sigma + \epsilon) ^ {-1/2}(I - 1/N)(\sigma + \epsilon) -
+        #         (\sigma + \epsilon) ^ {-3/2}((x_i - \mu) / N)(x_j - \mu)
+        dy_dx = (np.expand_dims(g, rank)**-0.5 *
+                 np.expand_dims(np.eye(self._col) - dmean_dx, batch_dims) -
+                 0.5 * np.expand_dims(g, rank)**-1.5 *
+                 np.expand_dims(dvar_dx, rank) * np.expand_dims(f, rank - 1))
         dl_dx = np.einsum('...a,...ab->...b', dl_dy, dy_dx)
 
         self._gamma -= learning_rate * dl_dgamma
