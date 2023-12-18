@@ -225,6 +225,7 @@ class TransformerEncoderTest(np.testing.TestCase):
                                            hidden_dim=hidden_dim,
                                            norm_first=norm_first)
         qkv = utils.rand([batch, seq_len_q, qkv_features])
+        targets = utils.rand([batch, seq_len_q, qkv_features])
         variables = flax_encoder.init(rng, qkv)
         bound_flax_encoder = flax_encoder.bind(variables)
 
@@ -248,6 +249,19 @@ class TransformerEncoderTest(np.testing.TestCase):
 
         output = encoder(qkv)
         self.assert_allclose(output, flax_output)
+
+        @jax.jit
+        def _jax_forward(variables, x, targets):
+            z = flax_encoder.apply(variables, x)
+            return utils.mse_loss(z, targets)
+
+        flax_grad_fn = jax.jit(jax.grad(_jax_forward, argnums=(0, 1)))
+        flax_grad = flax_grad_fn(variables, qkv, targets)
+
+        learning_rate = 0.001
+        dl_dz = jax.grad(utils.mse_loss)(output, targets)
+        grad = encoder(dl_dz, backprop=True, learning_rate=learning_rate)
+        self.assert_allclose(grad, flax_grad[1])
 
 
 class TransformerDecoderTest(np.testing.TestCase):
@@ -273,6 +287,7 @@ class TransformerDecoderTest(np.testing.TestCase):
                                            norm_first=norm_first)
         q = utils.rand([batch, seq_len_q, qkv_features])
         kv = utils.rand([batch, seq_len_kv, qkv_features])
+        targets = utils.rand([batch, seq_len_q, qkv_features])
         variables = flax_decoder.init(rng, q, kv)
         bound_flax_decoder = flax_decoder.bind(variables)
 
@@ -296,3 +311,17 @@ class TransformerDecoderTest(np.testing.TestCase):
 
         output = decoder(q, kv)
         self.assert_allclose(output, flax_output)
+
+        @jax.jit
+        def _jax_forward(variables, q, kv, targets):
+            z = flax_decoder.apply(variables, q, kv)
+            return utils.mse_loss(z, targets)
+
+        flax_grad_fn = jax.jit(jax.grad(_jax_forward, argnums=(0, 1, 2)))
+        flax_grad = flax_grad_fn(variables, q, kv, targets)
+
+        learning_rate = 0.001
+        dl_dz = jax.grad(utils.mse_loss)(output, targets)
+        grad = decoder(dl_dz, backprop=True, learning_rate=learning_rate)
+        self.assert_allclose(grad[0], flax_grad[1])
+        self.assert_allclose(grad[1], flax_grad[2])

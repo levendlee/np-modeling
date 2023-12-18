@@ -71,6 +71,8 @@ class TransformerEncoder(layer.Layer):
         # TODO: add mask support.
         # TODO: add dropout support.
 
+        batch, seq_len_q, features = qkv.shape
+
         skip = qkv
         if self._norm_first:
             qkv = self._norm1(qkv)
@@ -79,6 +81,8 @@ class TransformerEncoder(layer.Layer):
         if not self._norm_first:
             out = self._norm1(out)
 
+        # Our dense layer doesn't support more than 1 batch dimension. :)
+        out = np.reshape(out, [-1, features])
         skip = out
 
         if self._norm_first:
@@ -89,10 +93,37 @@ class TransformerEncoder(layer.Layer):
         if not self._norm_first:
             out = self._norm2(out)
 
+        out = np.reshape(out, [batch, seq_len_q, features])
         return out
 
-    def backward(self, *args, **kwargs):
-        raise NotImplementedError
+    def backward(self, dy: np.ndarray, learning_rate: float) -> np.ndarray:
+        # Uses dy to represent dl/dy and so on.
+
+        batch, seq_len_q, features = dy.shape
+
+        dy = np.reshape(dy, [-1, features])
+        if not self._norm_first:
+            dy = self._norm2.backward(dy, learning_rate)
+        dskip = dy
+        dy = self._dense2.backward(dy, learning_rate)
+        dy = self._dense1.backward(dy, learning_rate)
+        if self._norm_first:
+            dy = self._norm2.backward(dy, learning_rate)
+
+        dy += dskip
+        dy = np.reshape(dy, [batch, seq_len_q, features])
+
+        if not self._norm_first:
+            dy = self._norm1.backward(dy, learning_rate)
+        dskip = dy
+        dy = self._self_attention.backward(dy, learning_rate)
+        dy = np.sum(dy, axis=0)
+        if self._norm_first:
+            dy = self._norm1.backward(dy, learning_rate)
+
+        dy += dskip
+
+        return dy
 
 
 class TransformerDecoder(layer.Layer):
@@ -114,6 +145,8 @@ class TransformerDecoder(layer.Layer):
     def forward(self, q: np.ndarray, kv: np.ndarray) -> np.ndarray:
         # TODO: support cache
 
+        batch, seq_len_q, features = q.shape
+
         skip = q
         if self._norm_first:
             q = self._norm1(q)
@@ -131,6 +164,8 @@ class TransformerDecoder(layer.Layer):
         if not self._norm_first:
             out = self._norm2(out)
 
+        # Our dense layer doesn't support more than 1 batch dimension. :)
+        out = np.reshape(out, [-1, features])
         skip = out
 
         if self._norm_first:
@@ -141,7 +176,42 @@ class TransformerDecoder(layer.Layer):
         if not self._norm_first:
             out = self._norm3(out)
 
+        out = np.reshape(out, [batch, seq_len_q, features])
         return out
 
-    def backward(self, *args, **kwargs):
-        raise NotImplementedError
+    def backward(self, dy: np.ndarray, learning_rate: float) -> np.ndarray:
+        batch, seq_len_q, features = dy.shape
+
+        dy = np.reshape(dy, [-1, features])
+        if not self._norm_first:
+            dy = self._norm3.backward(dy, learning_rate)
+        dskip = dy
+        dy = self._dense2.backward(dy, learning_rate)
+        dy = self._dense1.backward(dy, learning_rate)
+        if self._norm_first:
+            dy = self._norm3.backward(dy, learning_rate)
+
+        dy += dskip
+        dy = np.reshape(dy, [batch, seq_len_q, features])
+
+        if not self._norm_first:
+            dy = self._norm2.backward(dy, learning_rate)
+        dskip = dy
+        dy = self._cross_attention.backward(dy, learning_rate)
+        dkv = np.sum(dy[1:3], axis=0)
+        dy = dy[0]
+        if self._norm_first:
+            dy = self._norm2.backward(dy, learning_rate)
+
+        dy += dskip
+        if not self._norm_first:
+            dy = self._norm1.backward(dy, learning_rate)
+        dskip = dy
+        dy = self._self_attention.backward(dy, learning_rate)
+        dy = np.sum(dy, axis=0)
+        if self._norm_first:
+            dy = self._norm1.backward(dy, learning_rate)
+
+        dy += dskip
+
+        return dy, dkv
