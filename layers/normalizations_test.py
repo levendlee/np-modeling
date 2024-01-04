@@ -8,6 +8,28 @@ from jax import numpy as jnp
 from layers import normalizations, utils
 
 
+class DropOutTest(np.testing.TestCase):
+    def assert_allclose(self, lhs, rhs, *, rtol=1e-6, atol=1e-6):
+        return np.testing.assert_allclose(lhs, rhs, rtol=rtol, atol=atol)
+
+    def test_forward_and_backward(self):
+        shape = [128, 32]
+        x = utils.rand(shape)
+
+        drop_rate = 0.5
+        keep_rate = 0.5
+        dropout = normalizations.DropOut(drop_rate)
+        y = dropout(x, training=True)
+
+        def _dropout(x, mask):
+            return jnp.where(mask, x / keep_rate, 0.0)
+
+        dy = utils.rand(shape)
+        jacobian = jax.jacobian(_dropout)(x, dropout._mask)
+        self.assert_allclose(np.einsum('ab,abcd->cd', dy, jacobian),
+                             dropout(dy, backprop=True))
+
+
 class LayerNormTest(np.testing.TestCase):
     def assert_allclose(self, lhs, rhs, *, rtol=1e-6, atol=1e-6):
         return np.testing.assert_allclose(lhs, rhs, rtol=rtol, atol=atol)

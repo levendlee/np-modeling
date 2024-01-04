@@ -6,6 +6,30 @@ import optimizer
 from layers import layer
 
 
+class DropOut(layer.Layer):
+    def __init__(self, drop_prob: float, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._drop_prob = drop_prob
+
+    def forward(self, x: np.ndarray, training: bool = True) -> np.ndarray:
+        if training and self._drop_prob != 0.0:
+            keep_prob = 1 - self._drop_prob
+            # Use the n=1 case of binominal distribution as bernoulli distribution.
+            # https://en.wikipedia.org/wiki/Bernoulli_distribution
+            # https://en.wikipedia.org/wiki/Binomial_distribution
+            self._mask = np.random.binomial(n=1, p=keep_prob,
+                                            size=x.size).reshape(x.shape)
+            return np.where(self._mask, x / keep_prob, 0.0)
+        return x
+
+    def backward(self, dl_dy: np.ndarray, *args, **kwargs) -> np.ndarray:
+        if self._drop_prob != 0.0:
+            # Backward pass only run in training.
+            keep_prob = 1 - self._drop_prob
+            return np.where(self._mask, dl_dy / keep_prob, 0.0)
+        return dl_dy
+
+
 class LayerNormalization(layer.StatefulLayer):
     def __init__(self, epsilon: float = 1e-3, *args, **kwargs):
         super().__init__(*args, **kwargs)

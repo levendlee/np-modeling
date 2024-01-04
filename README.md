@@ -13,7 +13,6 @@ Supports forward and backward path. Tested using Jax/Flax.
 - layers
     - `Dense`: Fully connected layer.
     - `Conv2D`: 2D Convolutional layer.
-
     - `MultiHeadAttention`: Attention mechanism. Found in transformer
     encoder/decoder blocks.
     - `TransformerEncoder`: Transformer decoder block. Found in encoder-only
@@ -28,6 +27,8 @@ Supports forward and backward path. Tested using Jax/Flax.
         Normalize output as a probability distribution.
 
 - `normalizations`
+    - `Dropout`: [Dropout](https://www.cs.toronto.edu/~rsalakhu/papers/srivastava14a.pdf).
+        Resolve overfitting through preventing units co-adopting.
     - `LayerNormalization`: [Layer normalization](https://arxiv.org/abs/1607.06450).
         Normalize each individual sample in a batch. Common in autoregressive
         NLP tasks.
