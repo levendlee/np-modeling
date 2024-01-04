@@ -1,9 +1,10 @@
 # Layer.
 
 import abc
-from typing import Mapping, Optional, Sequence, Union
+from typing import Optional, Sequence
 
 import numpy as np
+
 import optimizer
 
 
@@ -38,7 +39,7 @@ class Layer(metaclass=abc.ABCMeta):
                 raise ValueError(
                     'Optimizer and learning rate cannot both be specified!')
             if learning_rate is not None:
-                optimizer_ = optimizer.DefaultOptimizer(learning_rate)
+                optimizer_ = optimizer.SGDOptimizer(learning_rate)
             return self.backward(*args, optimizer_, **kwargs)
         else:
             return self.forward(*args, **kwargs)

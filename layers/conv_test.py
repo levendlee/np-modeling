@@ -1,14 +1,12 @@
-# Conv layer test
+# Conv layer test.
 
 import unittest
 
 import jax
-from jax import numpy as jnp
 import numpy as np
+from jax import numpy as jnp
 
-import conv
-import mlp
-import utils
+from layers import conv, utils
 
 
 class ConvTest(unittest.TestCase):

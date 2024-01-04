@@ -1,27 +1,11 @@
-# Dense layer
+# Dense layer.
 
-import abc
-import enum
-from typing import Callable, Optional, Sequence, Type
+from typing import Optional
 
 import numpy as np
 
-import layer
 import optimizer
-
-
-class Activation(layer.Layer):
-    pass
-
-
-class ReLU(Activation):
-    def forward(self, x: np.ndarray) -> np.ndarray:
-        self._x = x
-        return np.maximum(x, 0.0)
-
-    def backward(self, dy: np.ndarray) -> np.ndarray:
-        assert dy.shape == self._x.shape, f'{dy.shape} vs {self._x.shape}'
-        return np.where(self._x >= 0.0, dy, 0.0)
+from layers import activations, layer
 
 
 class Linear(layer.StatefulLayer):
@@ -70,12 +54,12 @@ class Dense(layer.StatefulLayer):
     """Dense w/ ReLU activation."""
     def __init__(self,
                  units: int,
-                 activation: Optional[Activation] = None,
+                 activation: Optional[activations.Activation] = None,
                  *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
         self._linear = Linear(units=units)
-        self._activation = activation or ReLU()
+        self._activation = activation or activations.ReLU()
 
     def initialize(self, x: np.ndarray) -> None:
         self._linear.initialize(x)

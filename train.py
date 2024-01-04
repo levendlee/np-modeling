@@ -1,13 +1,13 @@
 # Train
 
-from typing import Optional, Sequence
 import logging
+from typing import Optional, Sequence
 
 import numpy as np
 
-import layer
 import loss
 import optimizer
+from layers import layer
 
 
 class Trainer:

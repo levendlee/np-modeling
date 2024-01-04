@@ -1,49 +1,15 @@
-# Attention layer test
+# Attention layer test.
 
 import copy
-import unittest
 
-import collections.abc
 import flax
 import jax
-from jax import numpy as jnp
 import numpy as np
 
-import attention
-import utils
+from layers import attentions, utils
 
 
-class NNTestCase(unittest.TestCase):
-    def assert_allclose(self, lhs, rhs, *, rtol=1e-5, atol=2e-5):
-        return np.testing.assert_allclose(lhs, rhs, rtol=rtol, atol=atol)
-
-
-class SotmaxTest(NNTestCase):
-    def test_forward_and_backward(self):
-        np.random.seed(0)
-
-        shape = [128, 128]
-        x = utils.rand(shape)
-        targets = utils.rand(shape)
-
-        @jax.jit
-        def flax_forward(x, targets):
-            y = flax.linen.softmax(x)
-            return utils.mse_loss(y, targets)
-
-        flax_grad = jax.jit(jax.grad(flax_forward))
-        # print(flax_grad.lower(x, targets).as_text())
-        flax_dx = flax_grad(x, targets)
-
-        softmax = attention.Softmax()
-        y = softmax(x)
-        dy = jax.grad(utils.mse_loss)(y, targets)
-        dx = softmax(dy, backprop=True)
-
-        self.assert_allclose(flax_dx, dx, rtol=1e-5, atol=1e-5)
-
-
-class AttentionTest(NNTestCase):
+class AttentionTest(utils.NNTestCase):
     def test_forward_and_backward(self):
         np.random.seed(0)
 
@@ -66,7 +32,7 @@ class AttentionTest(NNTestCase):
         #   out:{kernel:shape:(8, 16, 128), bias:shape:(128,)}}}
         # print(_nested_printer(variables))
         # print(jax.tree_util.tree_map(lambda x : x.shape, variables))
-        layer = attention.MultiHeadAttention(num_heads=num_heads)
+        layer = attentions.MultiHeadAttention(num_heads=num_heads)
         # Initialize layer
         output = layer(query=query)
 

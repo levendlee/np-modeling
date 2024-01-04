@@ -1,12 +1,10 @@
 # Loss
 
 import abc
-import enum
-from typing import Callable, Optional, Sequence, Type
 
 import numpy as np
 
-import layer
+from layers import layer
 
 
 class Loss(layer.Layer):

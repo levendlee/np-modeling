@@ -1,13 +1,12 @@
-# MLP layer test
+# MLP layer test.
 
 import unittest
 
 import jax
-from jax import numpy as jnp
 import numpy as np
+from jax import numpy as jnp
 
-import mlp
-import utils
+from layers import mlp, utils
 
 
 class MLPTest(unittest.TestCase):

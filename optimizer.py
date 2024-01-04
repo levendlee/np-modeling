@@ -5,7 +5,6 @@
 
 import abc
 import dataclasses
-from typing import Mapping, Optional, Sequence, Union
 
 import numpy as np
 
@@ -24,7 +23,7 @@ class Optimizer(metaclass=abc.ABCMeta):
         pass
 
 
-class DefaultOptimizer(Optimizer):
+class SGDOptimizer(Optimizer):
     def __init__(self, learning_rate: float) -> float:
         self._learning_rate = learning_rate
 

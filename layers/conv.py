@@ -1,14 +1,11 @@
-# Conv layer
+# Conv layer.
 
-import abc
-import enum
-from typing import Callable, Optional, Sequence, Type
+from typing import Optional, Sequence
 
 import numpy as np
 
-import layer
-import mlp
 import optimizer
+from layers import activations, layer
 
 
 class Conv2D(layer.StatefulLayer):
@@ -23,7 +20,7 @@ class Conv2D(layer.StatefulLayer):
                  kernel_size: int,
                  padding: str = 'SAME',
                  strides: Sequence[int] = (1, 1),
-                 activation: Optional[mlp.Activation] = None,
+                 activation: Optional[activations.Activation] = None,
                  *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
@@ -32,7 +29,7 @@ class Conv2D(layer.StatefulLayer):
         assert strides == (1, 1)
         self._output_channels = channels
         self._kernel_size = kernel_size
-        self._activation = activation or mlp.ReLU()
+        self._activation = activation or activations.ReLU()
 
     def initialize(self, x: np.ndarray) -> None:
         # Assums x in NHWC format. filters in HWIO format.

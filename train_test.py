@@ -1,25 +1,20 @@
 # Trainer Test
 
 import unittest
+
+import numpy as np
 from parameterized import parameterized
 
-import jax
-from jax import numpy as jnp
-import numpy as np
-
-import conv
-import mlp
 import optimizer
 import train
-import utils
+from layers import conv, mlp
 
 
 class TrainTest(unittest.TestCase):
-    @parameterized.expand([['None'],
-                           ['Adam']])
+    @parameterized.expand([['None'], ['Adam']])
     def test_train_mlp(self, optimizer_name: str):
         optimizer_cls = (optimizer.AdamOptimizer if optimizer_name == 'Adam'
-                         else optimizer.DefaultOptimizer)
+                         else optimizer.SGDOptimizer)
 
         np.random.seed(0)
 
@@ -79,7 +74,7 @@ class TrainTest(unittest.TestCase):
         trainer.train(inputs=x,
                       targets=targets,
                       steps=10,
-                      optimizer_=optimizer.DefaultOptimizer(1e-6))
+                      optimizer_=optimizer.SGDOptimizer(1e-6))
         print('Eval:')
         trainer.eval(inputs=x, targets=targets)
         # Additional eval run won't change loss

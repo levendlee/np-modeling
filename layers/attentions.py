@@ -1,45 +1,18 @@
-# Multi-Head Attention
+# Multi-Head attention layer.
 
-from typing import Callable, Optional, Sequence, Type
+from typing import Optional
 
 import numpy as np
 
-import layer
-import mlp
 import optimizer
-
-
-class Softmax(mlp.Activation):
-    def forward(self, x: np.ndarray) -> np.ndarray:
-        self._x = x
-
-        x_max = np.max(x, axis=-1, keepdims=True)
-        exp_x = np.exp(x - x_max)
-        exp_x_sum = np.sum(exp_x, axis=-1, keepdims=True)
-        self._y = exp_x / exp_x_sum
-
-        return self._y
-
-    def backward(self, dy: np.ndarray, *args, **kwargs) -> np.ndarray:
-        rank = len(self._y.shape)
-        batch = self._y.shape[:-1]
-        n = self._y.shape[-1]
-
-        # https://towardsdatascience.com/derivative-of-the-softmax-function-and-the-categorical-cross-entropy-loss-ffceefc081d1
-        # Jacobian
-        # dy_i/dx_j = y_i(1{i=j} - y_j)
-        # Broadcasting batch dimensions and last 2 dimensions as Jacobian.
-        j = np.expand_dims(np.eye(n), axis=tuple(range(rank - 1)))
-        j = j - np.expand_dims(self._y, axis=rank - 1)
-        j = j * np.expand_dims(self._y, axis=rank)
-        return np.einsum('...a,...ba->...b', dy, j)
+from layers import activations, layer
 
 
 class MultiHeadAttention(layer.StatefulLayer):
     def __init__(self, num_heads: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._num_heads = num_heads
-        self._softmax = Softmax()
+        self._softmax = activations.Softmax()
 
     def initialize(self,
                    query: np.ndarray,
