@@ -36,6 +36,7 @@ Supports forward and backward path. Tested using Jax/Flax.
 ### `loss`
 
 - `MSELoss`: Mean square error loss for regression tasks.
+- `CrossEntropyLoss`: Cross entropy loss for classification tasks.
 
 ### `optimizer`
 
