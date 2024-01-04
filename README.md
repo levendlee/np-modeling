@@ -48,3 +48,7 @@ Supports forward and backward path. Tested using Jax/Flax.
 ### `train`
 
 - `Trainer`: Naive local trainer.
+
+### `metrics`
+-  `BinaryClassificationMetrics`: Precision (focus on predicts) and recall
+    (focus on truth).
